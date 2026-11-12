@@ -1,5 +1,5 @@
 import os
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404,redirect
 from django.utils import timezone
 from django.core.paginator import Paginator
 from .models import Job, Application
@@ -133,10 +133,11 @@ def apply_job(request, slug):
             cover_letter=cover_letter
         )
 
-        return render(request, 'jobs/thank_you.html', {
-            'job': job
-        })
+        return redirect('thank_you')
 
     return render(request, 'jobs/apply_job.html', {
         'job': job
     })
+
+def thank_you(request):
+    return render(request, 'jobs/thank_you.html')
