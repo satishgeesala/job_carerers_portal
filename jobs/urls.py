@@ -10,8 +10,8 @@ urlpatterns = [
     path('thank-you/', views.thank_you, name='thank_you'),
     
     path(
-    'admin/resume/<int:application_id>/',
-    views.download_resume,
-    name='download_resume'
-),
+        'resume/<int:application_id>/',
+        views.download_resume,
+        name='download_resume'
+    ),
 ]
