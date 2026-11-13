@@ -1,11 +1,18 @@
+
 import os
-from django.shortcuts import render, get_object_or_404,redirect
+import time
+import requests
+import cloudinary.utils
+
+from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.core.paginator import Paginator
-from .models import Job, Application
-import time
-import cloudinary.utils
+from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied
 from django.contrib.admin.views.decorators import staff_member_required
+
+from .models import Job, Application
+
 
 def home(request):
     jobs = Job.objects.filter(
@@ -57,6 +64,7 @@ def job_list(request):
         'job_type': job_type,
     })
 
+
 def job_detail(request, slug):
     job = get_object_or_404(
         Job,
@@ -68,7 +76,6 @@ def job_detail(request, slug):
     return render(request, 'jobs/job_detail.html', {
         'job': job
     })
-
 
 
 def apply_job(request, slug):
@@ -141,8 +148,10 @@ def apply_job(request, slug):
         'job': job
     })
 
+
 def thank_you(request):
     return render(request, 'jobs/thank_you.html')
+
 
 @staff_member_required
 def download_resume(request, application_id):
@@ -151,11 +160,16 @@ def download_resume(request, application_id):
         id=application_id
     )
 
+    # Check application viewing permission
+    if not request.user.has_perm('jobs.view_application'):
+        raise PermissionDenied
+
     if not application.resume:
         return redirect('admin:jobs_application_changelist')
 
     public_id = application.resume.name
 
+    # Generate temporary authenticated Cloudinary URL
     resume_url = cloudinary.utils.private_download_url(
         public_id,
         None,
@@ -165,4 +179,30 @@ def download_resume(request, application_id):
         attachment=False,
     )
 
-    return redirect(resume_url)
+    try:
+        # Retrieve PDF from Cloudinary
+        cloudinary_response = requests.get(
+            resume_url,
+            timeout=30
+        )
+        cloudinary_response.raise_for_status()
+
+        pdf_content = cloudinary_response.content
+        cloudinary_response.close()
+
+        # Display PDF directly in browser
+        response = HttpResponse(
+            pdf_content,
+            content_type='application/pdf'
+        )
+
+        response['Content-Disposition'] = 'inline; filename="resume.pdf"'
+        response['X-Content-Type-Options'] = 'nosniff'
+
+        return response
+
+    except requests.RequestException:
+        return HttpResponse(
+            'Unable to retrieve the resume. Please try again.',
+            status=502
+        )
