@@ -3,7 +3,9 @@ from django.shortcuts import render, get_object_or_404,redirect
 from django.utils import timezone
 from django.core.paginator import Paginator
 from .models import Job, Application
-
+import time
+import cloudinary.utils
+from django.contrib.admin.views.decorators import staff_member_required
 
 def home(request):
     jobs = Job.objects.filter(
@@ -141,3 +143,26 @@ def apply_job(request, slug):
 
 def thank_you(request):
     return render(request, 'jobs/thank_you.html')
+
+@staff_member_required
+def download_resume(request, application_id):
+    application = get_object_or_404(
+        Application,
+        id=application_id
+    )
+
+    if not application.resume:
+        return redirect('admin:jobs_application_changelist')
+
+    public_id = application.resume.name
+
+    resume_url = cloudinary.utils.private_download_url(
+        public_id,
+        None,
+        resource_type='raw',
+        type='authenticated',
+        expires_at=int(time.time()) + 300,
+        attachment=True,
+    )
+
+    return redirect(resume_url)

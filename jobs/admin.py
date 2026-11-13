@@ -1,6 +1,8 @@
+
 from django.contrib import admin
-from .models import Job, Application
 from django.utils.html import format_html
+from django.urls import reverse
+from .models import Job, Application
 
 
 @admin.register(Job)
@@ -29,8 +31,12 @@ class ApplicationAdmin(admin.ModelAdmin):
     @admin.display(description='Resume')
     def view_resume(self, obj):
         if obj.resume:
+            url = reverse(
+                'download_resume',
+                args=[obj.id]
+            )
             return format_html(
-                '<a href="{}" target="_blank">View Resume</a>',
-                obj.resume.url
+                '<a href="{}">View Resume</a>',
+                url
             )
         return "No resume"
