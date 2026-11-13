@@ -162,7 +162,7 @@ def download_resume(request, application_id):
         resource_type='raw',
         type='authenticated',
         expires_at=int(time.time()) + 300,
-        attachment=True,
+        attachment=False,
     )
 
     return redirect(resume_url)
